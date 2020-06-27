@@ -11,7 +11,6 @@ import machine
 import micropython
 
 from exosence import ExoSense
-from modbus import ModBusRTU
 from modbus import ModbusTCP
 from webserver import Webserver
 
@@ -280,21 +279,8 @@ if not config_ERROR and (config.MB_RTU_ADDRESS > 0 or len(config.MB_TCP_IP) > 0)
     for i in range(10):
         _exo.thpa.read()
 
-    if config.MB_RTU_ADDRESS > 0:
-        _modbus = ModbusRTU(exo=_exo,
-                            enable_ap_func=_enable_ap,
-                            addr=config.MB_RTU_ADDRESS,
-                            baudrate=config.MB_RTU_BAUDRATE,
-                            data_bits=config.MB_RTU_DATA_BITS,
-                            stop_bits=config.MB_RTU_STOP_BITS,
-                            parity=UART.ODD if config.MB_RTU_PARITY == 2 else None if config.MB_RTU_PARITY == 3 else UART.EVEN,
-                            pins=(_exo.PIN_TX, _exo.PIN_RX),
-                            ctrl_pin=_exo.PIN_TX_EN)
-
-        _modbus_process = _modbus_rtu_process  # Set function  `_modbus_process()` to be same as `_modbus_rtu_process()`
-    else:
-        _modbus = ModbusTCP(exo=_exo)
-        _modbus_process = _modbus_tcp_process # Set function  `_modbus_process()` to be same as `_modbus_tcp_process()`
+    _modbus = ModbusTCP(exo=_exo)
+    _modbus_process = _modbus_tcp_process # Set function  `_modbus_process()` to be same as `_modbus_tcp_process()`
 
     pycom.heartbeat(False)
     pycom.rgbled(0x00ff00)
