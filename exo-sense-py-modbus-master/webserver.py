@@ -5,6 +5,7 @@ import time
 import machine
 import ubinascii
 
+
 class WebServer:
     def __init__(self, user, password):
         self._sock = None

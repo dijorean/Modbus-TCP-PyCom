@@ -6,30 +6,74 @@ from machine import Pin
 import _thread
 import time
 
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Modbus parent class
+# ----------------------------------------------------------------------------------------------------------------------
+
 class Modbus:
+
     def __init__(self, exo, itf, addr_list):
+        """
+        Create private reference to passed arguments upon class instantiation.
+
+        :param exo: Instance of board controller
+        :param itf: Interface
+        :param addr_list: List of addresses
+        """
+
         self._exo = exo
         self._itf = itf
         self._addr_list = addr_list
 
     def process(self):
+        """
+        Read request and trigger its processing.
+
+        :return: True if request is successfully processed or False otherwise
+        """
+
         request = self._itf.get_request(unit_addr_list=self._addr_list, timeout=0)
+
         if request == None:
+            # TODO: Consider replacing the above comparison with `isinstance(request, type(None))`.
             return False
+
         self._process_req(request)
         return True
 
     def _beep(self, ms):
+        """
+        Trigger a beep.
+
+        :param ms: Duration of the beep, in milli seconds
+        :return: None
+        """
+
         self._exo.buzzer(1)
         time.sleep_ms(ms)
         self._exo.buzzer(0)
 
     def _do1_pulse(self, ms):
+        """
+        Trigger a pulse.
+
+        :param ms: Duration of the pulse, in milli seconds
+        :return: None
+        """
+
         self._exo.DO1(1)
         time.sleep_ms(ms)
         self._exo.DO1(0)
 
     def _process_req(self, request):
+        """
+        Process an already read request.
+
+        :param request: The actual (already read) request
+        :return: None
+        """
+
         if request.function == ModbusConst.READ_DISCRETE_INPUTS:
             if request.register_addr >= 101 and request.register_addr <= 102:
                 vals = []
@@ -144,17 +188,54 @@ class Modbus:
         else:
             request.send_exception(ModbusConst.ILLEGAL_FUNCTION)
 
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Modbus children classes
+# ----------------------------------------------------------------------------------------------------------------------
+
 class ModbusRTU(Modbus):
-    def __init__(self, exo, enable_ap_func, addr, baudrate=19200, data_bits=8, stop_bits=1, parity=UART.EVEN, pins=None, ctrl_pin=None):
-        super().__init__(
-            exo,
-            Serial(uart_id=1, baudrate=baudrate, data_bits=data_bits, stop_bits=stop_bits, parity=parity, pins=pins, ctrl_pin=ctrl_pin),
-            [addr]
-        )
+
+    def __init__(self, exo, enable_ap_func, addr, baudrate=19200, data_bits=8, stop_bits=1, parity=UART.EVEN, pins=None,
+                 ctrl_pin=None):
+        """
+        Create private reference to passed arguments and execute relevant class instantiation functions.
+
+        TODO: Complete docstring.
+
+        :param exo:
+        :param enable_ap_func:
+        :param addr:
+        :param baudrate:
+        :param data_bits:
+        :param stop_bits:
+        :param parity:
+        :param pins:
+        :param ctrl_pin:
+        """
+
+        # Execute `__init__()` method of the parent class (`Modbus` class)
+        super().__init__(exo=exo,
+                         itf=Serial(uart_id=1,
+                                    baudrate=baudrate,
+                                    data_bits=data_bits,
+                                    stop_bits=stop_bits,
+                                    parity=parity,
+                                    pins=pins,
+                                    ctrl_pin=ctrl_pin),
+                         addr_list=[addr])
+
         self._enable_ap = enable_ap_func
+
         Pin(pins[1], mode=Pin.IN, pull=None)
 
     def _process_req(self, request):
+        """
+        Process an already read request.
+        NOTE: Overwrite function difinition in parent class (`Modbus` class).
+
+        :param request: The actual (already read) request
+        :return: None
+        """
         if request.function == ModbusConst.WRITE_SINGLE_COIL:
             if request.register_addr == 5:
                 if request.data[0] == 0xFF:
@@ -165,13 +246,26 @@ class ModbusRTU(Modbus):
                 return
         super()._process_req(request)
 
+
 class ModbusTCP(Modbus):
+
     def __init__(self, exo):
-        super().__init__(
-            exo,
-            TCPServer(),
-            None
-        )
+        """
+        Create private reference to passed arguments and execute relevant class instantiation functions.
+
+        :param exo: Instance of the board controller.
+        """
+
+        # Execute `__init__()` method of the parent class (`Modbus` class)
+        super().__init__(exo=exo, itf=TCPServer(), addr_list=None)
 
     def bind(self, local_ip, local_port=502):
+        """
+        Bind to the TCP socket.
+
+        :param local_ip: IP address
+        :param local_port: Port number
+        :return: None
+        """
+
         self._itf.bind(local_ip, local_port)
